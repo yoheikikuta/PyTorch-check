@@ -24,7 +24,7 @@
 	},
 
 	// Specifies a command to run after the container is created
-	"postCreateCommand": "sudo /opt/conda/bin/python -m pip install -r requirements.txt",
+	"postCreateCommand": "sudo /opt/conda/bin/python -m pip install -r requirements.txt && conda install -y pytorch torchvision -c pytorch",
 
 	"extensions": [
 		"ms-python.python"
