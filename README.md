@@ -1,2 +1,2 @@
-# python-vscode-env
-Template of VSCode environment for python.
+# PyTorch-check
+For my personal studies.
