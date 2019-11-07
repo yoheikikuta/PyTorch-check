@@ -6,7 +6,25 @@ import urllib.request
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from absl import app, flags, logging
 from torchvision import datasets, transforms
+
+FLAGS = flags.FLAGS
+
+flags.DEFINE_string(
+    'file_url',
+    default="https://docs.google.com/uc?export=download&id=1KVOHbHnjCd1L-ookcd7CxDqb7rb8-DSx",  # noqa: E501
+    help="LeNet model file URL.")
+
+flags.DEFINE_string(
+    'data_dir',
+    default=os.path.join(os.path.dirname(__file__), "..", "data"),
+    help="Path of the data directory.")
+
+flags.DEFINE_string(
+    'model_name',
+    default="lenet_mnist_model.pth",
+    help="File name of the pretrained model.")
 
 
 # LeNet Model definition
@@ -100,19 +118,17 @@ def test(model, device, test_loader, epsilon):
     return final_acc, adv_examples
 
 
-if __name__ == "__main__":
-    DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
-    MODEL_PATH = os.path.join(DATA_DIR, "lenet_mnist_model.pth")
-
+def main(argv):
     # If there doesn't exist the model, donwload a pretrained model from
     # https://drive.google.com/drive/folders/1fn83DF14tWmit0RTKWRhPq5uVXt73e0h.
-    FILE_URL = "https://docs.google.com/uc?export=download&id=1KVOHbHnjCd1L-ookcd7CxDqb7rb8-DSx"  # noqa: E501
-    if not os.path.isfile(MODEL_PATH):
-        urllib.request.urlretrieve(FILE_URL, MODEL_PATH)
+    if not os.path.isfile(os.path.join(FLAGS.data_dir, FLAGS.model_name)):
+        logging.info('Model download')
+        urllib.request.urlretrieve(FLAGS.file_url,
+                                   os.path.join(FLAGS.data_dir, FLAGS.model_name))
 
     # MNIST Test dataset and dataloader declaration
     test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST(DATA_DIR, train=False, download=True,
+        datasets.MNIST(FLAGS.data_dir, train=False, download=True,
                        transform=transforms.Compose([transforms.ToTensor(), ])),
         batch_size=1, shuffle=True)
 
@@ -124,7 +140,9 @@ if __name__ == "__main__":
     # Initialize the network
     model = Net().to(device)
     # Load the pretrained model
-    model.load_state_dict(torch.load(MODEL_PATH, map_location='cpu'))
+    logging.info('Load the pretrained model')
+    model.load_state_dict(torch.load(os.path.join(FLAGS.data_dir, FLAGS.model_name),
+                                     map_location='cpu'))
     # Set the model in evaluation mode. In this case this is for the Dropout layers
     model.eval()
 
@@ -132,8 +150,14 @@ if __name__ == "__main__":
     examples = []
 
     # Run test for each epsilon
+    logging.info('Run test for each epsilon')
     epsilons = [0, .05, .1, .15, .2, .25, .3]
     for eps in epsilons:
         acc, ex = test(model, device, test_loader, eps)
         accuracies.append(acc)
         examples.append(ex)
+
+
+if __name__ == '__main__':
+    logging.set_verbosity(logging.INFO)
+    app.run(main)
